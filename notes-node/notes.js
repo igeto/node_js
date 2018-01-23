@@ -16,9 +16,12 @@ let dbContext = (method, data) => {
     if (!!method && method === 'post') {
         if (!!data && data instanceof Note) {
             let db = dbContext('get')
-            if (!!db) {
-                db.push(data)
+            let duplicateNote = db.filter(note => note.title === data.title)
+            if ((!!db && db.length !== 0) && duplicateNote.length === 0) {
                 fs.writeFileSync('playground/notes-data.json', JSON.stringify(db))
+                console.log(`Added new note with title: ${data.title} and body: ${data.body}`)
+            } else {
+                console.log(`Note with title: ${data.title} already exists`)
             }
         } else {
             console.error('Invalid data')
@@ -27,17 +30,25 @@ let dbContext = (method, data) => {
     if (!!method && method === 'getOne') {
         if (!!data && typeof data === 'string') {
             let db = dbContext('get')
-            if (!!db)
-                return db.filter(note => note.title === data)
+            if (!!db && db.length !== 0) {
+                note = db.filter(note => note.title === data)
+                return note[0]
+            }
+        } else {
+            console.error('Invalid data')
         }
     }
     if (!!method && method === 'delete') {
         if (!!data && typeof data === 'string') {
             let db = dbContext('get')
-            if (!!db) {
-                db = db.filter(note => note.title !== data)
-                fs.writeFileSync('playground/notes-data.json', JSON.stringify(db))
+            if (!!db && db.length !== 0) {
+                let filteredDb = db.filter(note => note.title !== data)
+                fs.writeFileSync('playground/notes-data.json', JSON.stringify(filteredDb))
+
+                return filteredDb.length !== db.length ? true : false;
             }
+        } else {
+            console.error('Invalid data')
         }
     }
 }
@@ -48,6 +59,7 @@ function Note(title, body) {
 }
 
 let addNote = (title, body) => {
+    debugger
     console.log(`Adding note ${title} ${body}`)
     dbContext('post', new Note(title, body))
 }
@@ -61,13 +73,12 @@ let getAll = () => {
 let getNote = (title) => {
     console.log(`Getting note with title ${title}`)
     let note = dbContext('getOne', title)
-    console.log(`${note[0].title}: ${note[0].body}`)
+    return note
 }
 
 let removeNote = (title) => {
     console.log(`Removing note with title ${title}`)
-    notes = dbContext('delete', title)
-    getAll()
+    return notes = dbContext('delete', title)
 }
 
 module.exports = {
